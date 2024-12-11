@@ -7,7 +7,7 @@ from datasets.AuxFunction import FFT
 import pickle
 # ------------------------------------------------------------
 signal_size = 1024
-root = "D:\data\XJTU_Gearbox"
+root = "/home/wang/下载/"
 
 fault_name = ['1ndBearing_ball','1ndBearing_inner','1ndBearing_mix(inner+outer+ball)','1ndBearing_outer',
               '2ndPlanetary_brokentooth','2ndPlanetary_missingtooth','2ndPlanetary_normalstate','2ndPlanetary_rootcracks','2ndPlanetary_toothwear']
@@ -28,7 +28,7 @@ def get_files(sample_length, root, InputType, task,test=False):
 
     for i in tqdm(range(len(fault_name))):
         data_name = 'Data_Chan1.txt'
-        path2 = os.path.join('/tmp', root, fault_name[i],data_name)
+        path2 = os.path.join(root, fault_name[i],data_name)
         data1 = data_load(sample_length,filename=path2, label=label[i],InputType=InputType,task=task)
         data += data1
 
