@@ -18,7 +18,8 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as pl
 import numpy as np
-from sklearn import metrics
+from sklearn.metrics import ConfusionMatrixDisplay
+
 
 class train_utils(object):
     def __init__(self, args, save_dir):
@@ -53,13 +54,14 @@ class train_utils(object):
         self.datasets = {}
 
         # 准备训练和验证数据集
-        self.datasets['train'], self.datasets['val'] = Dataset(args.sample_length, args.data_dir, args.Input_type, args.task).data_preprare()
+        self.datasets['train'], self.datasets['val'] = Dataset(args.sample_length, args.data_dir, args.Input_type,
+                                                               args.task).data_preprare()
 
         # 定义训练和验证数据加载器
         self.dataloaders = {x: DataLoader(self.datasets[x], batch_size=args.batch_size,
-                                           shuffle=(True if x == 'train' else False),
-                                           num_workers=args.num_workers,
-                                           pin_memory=(True if self.device == 'cuda' else False))
+                                          shuffle=(True if x == 'train' else False),
+                                          num_workers=args.num_workers,
+                                          pin_memory=(True if self.device == 'cuda' else False))
                             for x in ['train', 'val']}
 
         # 根据输入类型定义特征的维度
@@ -77,7 +79,8 @@ class train_utils(object):
         if args.task == 'Node':
             self.model = getattr(models, args.model_name)(feature=feature, out_channel=Dataset.num_classes)
         elif args.task == 'Graph':
-            self.model = getattr(models2, args.model_name)(feature=feature, out_channel=Dataset.num_classes, pooltype=args.pooltype)
+            self.model = getattr(models2, args.model_name)(feature=feature, out_channel=Dataset.num_classes,
+                                                           pooltype=args.pooltype)
         else:
             print('The task is wrong!')
 
@@ -131,36 +134,13 @@ class train_utils(object):
         self.criterion = nn.CrossEntropyLoss()
         # self.criterion = nn.MSELoss()  # 如果是回归任务，使用MSELoss
 
-    def plot_matrix(y_true, y_pred, labels_name, title=None, thresh=0.8, axis_labels=None):
-        # 利用sklearn中的函数生成混淆矩阵并归一化
-        cm = metrics.confusion_matrix(y_true, y_pred, sample_weight=None)  # 生成混淆矩阵
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]  # 归一化
-
-        # 画图，如果希望改变颜色风格，可以改变此部分的cmap=pl.get_cmap('Blues')处
-        pl.imshow(cm, interpolation='nearest', cmap=pl.get_cmap('Blues'))
-        pl.colorbar()  # 绘制图例
-
-        # 图像标题
-        if title is not None:
-            pl.title(title)
-        # 绘制坐标
-        num_local = np.array(range(len(labels_name)))
-        if axis_labels is None:
-            axis_labels = labels_name
-        pl.xticks(num_local, axis_labels, rotation=45)  # 将标签印在x轴坐标上， 并倾斜45度
-        pl.yticks(num_local, axis_labels)  # 将标签印在y轴坐标上
-        pl.ylabel('True label')
-        pl.xlabel('Predicted label')
-
-        # 将百分比打印在相应的格子内，大于thresh的用白字，小于的用黑字
-        for i in range(np.shape(cm)[0]):
-            for j in range(np.shape(cm)[1]):
-                if int(cm[i][j] * 100 + 0.5) > 0:
-                    pl.text(j, i, format(int(cm[i][j] * 100 + 0.5), 'd') + '%',
-                            ha="center", va="center",
-                            color="white" if cm[i][j] > thresh else "black")  # 如果要更改颜色风格，需要同时更改此行
-        # 显示
-        pl.show()
+    def draw(self, cm, labels):
+        # 使用 sklearn 的 ConfusionMatrixDisplay
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
+        fig, ax = pl.subplots(figsize=(12, 12))  # 设置图像尺寸
+        disp.plot(cmap="Blues", ax=ax, colorbar=True)
+        pl.title("Confusion Matrix (30 Epochs)", fontsize=16)
+        pl.show()  # 单独显示图像
 
     def train(self):
         """
@@ -313,12 +293,7 @@ class train_utils(object):
         logging.info("Training completed. Now calculating confusion matrix on the validation set.")
         conf_matrix = confusion_matrix(true_labels, pred_labels)
         logging.info(f"Final Confusion Matrix:\n{conf_matrix}")
-        train_utils.plot_matrix(true_labels,  # y_gt=[0,5,1,6,3,...]
-                              pred_labels,  # y_pred=[0,5,1,6,3,...]
-                              ["1", "2", "3", "4", "5", "6", "7","8","9","10","11","12","13","14","15","16","17","18","19","20"],
-                              "Confusion Matrix on Fer2013")
-
-
+        self.draw(conf_matrix, [str(i) for i in range(1, 21)])
 
     # def train(self):
     #     """
