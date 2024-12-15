@@ -5,8 +5,10 @@ from torch_geometric.nn import GCNConv, GATConv, BatchNorm
 from models.Transformer import TransformerEncoderLayer  # 假设之前定义的 Transformer 层
 from torch_geometric.data import Data
 
+
 class GCNTransformerGAT(nn.Module):
-    def __init__(self, feature, out_channel, gcn_hidden_dim=1024, transformer_dim=512, num_heads=4, num_transformer_layers=2, dropout=0.1):
+    def __init__(self, feature, out_channel, gcn_hidden_dim=1024, transformer_dim=512, num_heads=4,
+                 num_transformer_layers=2, dropout=0.1):
         super(GCNTransformerGAT, self).__init__()
         # GAT 层
         self.gat = GATConv(gcn_hidden_dim, gcn_hidden_dim, heads=num_heads, concat=True)  # GAT 层
@@ -43,7 +45,7 @@ class GCNTransformerGAT(nn.Module):
         )
         self.fc1 = nn.Linear(512, out_channel)
 
-    def forward(self, data):
+    def forward(self, data, return_features=False):
         # 获取图数据中的节点特征和边信息
         x, edge_index, edge_weight = data.x, data.edge_index, data.edge_attr
 
@@ -65,6 +67,9 @@ class GCNTransformerGAT(nn.Module):
         for layer in self.transformer_layers:
             x = layer(x)
         x = x.squeeze(0)  # 恢复维度为 (num_nodes, feature_dim)
+
+        if return_features:
+            return x  # 返回特征
 
         # 5. 分类
         x = self.fc(x)  # [num_nodes, 512]
