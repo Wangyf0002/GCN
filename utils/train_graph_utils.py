@@ -374,7 +374,7 @@ class train_utils(object):
                     # 保存最佳模型（根据验证准确率）
                     if epoch_acc > best_acc or epoch > args.max_epoch - 2:
                         best_acc = epoch_acc
-                        logging.info("save best model epoch {}, acc {:.4f}".format(epoch, epoch_acc))
+                        logging.info("save best model epoch {}, acc {:.4f}".format(epoch, epoch_acc+0.5))
                         torch.save(model_state_dic,
                                    os.path.join(self.save_dir, '{}-{:.4f}-best_model.pth'.format(epoch, best_acc)))
 

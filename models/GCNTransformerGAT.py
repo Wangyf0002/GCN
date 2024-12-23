@@ -10,6 +10,7 @@ class GCNTransformerGAT(nn.Module):
     def __init__(self, feature, out_channel, gcn_hidden_dim=1024, transformer_dim=512, num_heads=4,
                  num_transformer_layers=2, dropout=0.1):
         super(GCNTransformerGAT, self).__init__()
+
         # GAT 层
         self.gat = GATConv(gcn_hidden_dim, gcn_hidden_dim, heads=num_heads, concat=True)  # GAT 层
         self.gat_bn = BatchNorm(gcn_hidden_dim * num_heads)  # GAT 的 BatchNorm
