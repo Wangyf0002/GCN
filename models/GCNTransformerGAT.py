@@ -2,28 +2,29 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv, GATConv, BatchNorm
-from models.Transformer import TransformerEncoderLayer  # 假设之前定义的 Transformer 层
-from torch_geometric.data import Data
+from models.Transformer import TransformerEncoderLayer
 
 
 class GCNTransformerGAT(nn.Module):
     def __init__(self, feature, out_channel, gcn_hidden_dim=1024, transformer_dim=512, num_heads=4,
-                 num_transformer_layers=2, dropout=0.1):
+                 num_gcn_layers=4, num_transformer_layers=2, dropout=0.1):
         super(GCNTransformerGAT, self).__init__()
 
         # GAT 层 1
-        self.gat1 = GATConv(feature, gcn_hidden_dim, heads=num_heads, concat=True)  # GAT 层
-        self.gat_bn1 = BatchNorm(gcn_hidden_dim * num_heads)  # GAT 的 BatchNorm
+        self.gat1 = GATConv(feature, gcn_hidden_dim, heads=num_heads, concat=True)
+        self.gat_bn1 = BatchNorm(gcn_hidden_dim * num_heads)
 
-        # GCN 层
-        self.GConv1 = GCNConv(gcn_hidden_dim * num_heads, gcn_hidden_dim)
-        self.bn1 = BatchNorm(gcn_hidden_dim)
-        self.GConv2 = GCNConv(gcn_hidden_dim, gcn_hidden_dim)
-        self.bn2 = BatchNorm(gcn_hidden_dim)
+        # 动态添加多层 GCN
+        self.gcn_layers = nn.ModuleList()
+        self.bn_layers = nn.ModuleList()
+        for i in range(num_gcn_layers):
+            in_dim = gcn_hidden_dim * num_heads if i == 0 else gcn_hidden_dim  # 第一层的输入是 GAT 的输出
+            self.gcn_layers.append(GCNConv(in_dim, gcn_hidden_dim))
+            self.bn_layers.append(BatchNorm(gcn_hidden_dim))
 
         # GAT 层 2
-        self.gat2 = GATConv(gcn_hidden_dim, gcn_hidden_dim, heads=num_heads, concat=True)  # 第二个 GAT 层
-        self.gat_bn2 = BatchNorm(gcn_hidden_dim * num_heads)  # GAT 的 BatchNorm
+        self.gat2 = GATConv(gcn_hidden_dim, gcn_hidden_dim, heads=num_heads, concat=True)
+        self.gat_bn2 = BatchNorm(gcn_hidden_dim * num_heads)
 
         # 投影层：将 GCN 和 GAT 输出的维度调整到 Transformer 的输入维度
         self.projection = nn.Linear(gcn_hidden_dim * num_heads, transformer_dim)
@@ -53,11 +54,10 @@ class GCNTransformerGAT(nn.Module):
         x = F.relu(self.gat1(x, edge_index))
         x = self.gat_bn1(x)
 
-        # 2. 使用 GCN 提取节点特征
-        x = F.relu(self.GConv1(x, edge_index, edge_weight))
-        x = self.bn1(x)
-        x = F.relu(self.GConv2(x, edge_index, edge_weight))
-        x = self.bn2(x)
+        # 2. 多层 GCN 提取节点特征
+        for gcn, bn in zip(self.gcn_layers, self.bn_layers):
+            x = F.relu(gcn(x, edge_index, edge_weight))
+            x = bn(x)
 
         # 3. GAT 层 2 增强节点特征
         x = F.relu(self.gat2(x, edge_index))
