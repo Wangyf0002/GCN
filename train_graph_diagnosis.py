@@ -44,7 +44,7 @@ def parse_args():
     # save, load and display information: 保存、加载和显示相关的信息
     parser.add_argument('--resume', type=str, default='', help='the directory of the resume training model')  # 恢复训练模型的目录
     parser.add_argument('--max_model_num', type=int, default=1, help='the number of most recent models to save')  # 最大保存模型数量
-    parser.add_argument('--max_epoch', type=int, default=30, help='max number of epoch')  # 最大训练轮数
+    parser.add_argument('--max_epoch', type=int, default=100, help='max number of epoch')  # 最大训练轮数
     parser.add_argument('--print_step', type=int, default=100, help='the interval of log training information')  # 打印训练日志的间隔
 
     args = parser.parse_args()  # 解析命令行参数
